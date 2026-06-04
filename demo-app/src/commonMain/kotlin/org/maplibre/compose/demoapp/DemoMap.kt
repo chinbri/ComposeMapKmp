@@ -15,19 +15,26 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import org.maplibre.compose.camera.CameraState
+import org.maplibre.compose.demoapp.generated.Res
 import org.maplibre.compose.demoapp.util.Platform
 import org.maplibre.compose.demoapp.util.PlatformFeature
+import org.maplibre.compose.expressions.dsl.const
+import org.maplibre.compose.layers.LineLayer
 import org.maplibre.compose.map.MapOptions
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.map.OrnamentOptions
 import org.maplibre.compose.material3.DisappearingCompassButton
 import org.maplibre.compose.material3.DisappearingScaleBar
 import org.maplibre.compose.material3.ExpandingAttributionButton
+import org.maplibre.compose.sources.GeoJsonData
+import org.maplibre.compose.sources.rememberGeoJsonSource
+import org.maplibre.compose.style.BaseStyle
 import org.maplibre.compose.style.StyleState
 import org.maplibre.compose.util.ClickResult
 
@@ -69,6 +76,9 @@ fun DemoMap(state: DemoState, padding: PaddingValues = PaddingValues()) {
           cameraState = state.cameraState,
           baseStyle = state.selectedStyle.base,
           onMapClick = { position, offset ->
+            if(state.mapClickEvents.isNotEmpty()) {
+              state.mapClickEvents.removeFirst()
+            }
             state.mapClickEvents.add(MapClickEvent(position, offset))
             ClickResult.Pass
           },
@@ -80,11 +90,21 @@ fun DemoMap(state: DemoState, padding: PaddingValues = PaddingValues()) {
               gestureOptions = state.gestureOptions,
             ),
         ) {
+
           if (PlatformFeature.LayerStyling in Platform.supportedFeatures) {
             state.demos
               .filter { state.shouldRenderMapContent(it) }
               .forEach { it.MapContent(state = state, isOpen = state.isDemoOpen(it)) }
           }
+          val amtrakRoutes =
+            rememberGeoJsonSource(GeoJsonData.Uri(Res.getUri("files/data/countries_sample.geojson")))
+          LineLayer(
+            id = "amtrak-routes-casing",
+            source = amtrakRoutes,
+            color = const(Color.White),
+            width = const(6.dp),
+          )
+
         }
 
         state.demos
