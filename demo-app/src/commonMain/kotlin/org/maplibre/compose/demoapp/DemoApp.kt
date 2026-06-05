@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -44,7 +45,21 @@ import org.maplibre.compose.demoapp.util.Platform
 import org.maplibre.compose.demoapp.util.PlatformFeature
 import org.maplibre.compose.demoapp.util.getDefaultColorScheme
 import org.maplibre.compose.map.MaplibreMap
+import org.maplibre.compose.sources.GeoJsonData
+import org.maplibre.compose.sources.rememberGeoJsonSource
+import org.maplibre.compose.util.ClickResult
+import org.maplibre.spatialk.geojson.BoundingBox
+import org.maplibre.spatialk.geojson.Feature
+import org.maplibre.spatialk.geojson.FeatureCollection
+import org.maplibre.spatialk.geojson.Point
 import org.maplibre.spatialk.geojson.Position
+import androidx.compose.ui.graphics.Color
+import org.maplibre.compose.expressions.dsl.const
+import org.maplibre.compose.layers.CircleLayer
+import org.maplibre.compose.layers.FillLayer
+import org.maplibre.compose.layers.LineLayer
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.layout.padding
 
 //
 //@Composable
@@ -69,6 +84,19 @@ fun DemoApp() {
 private fun MyMap() {
 
     var showMap by remember { mutableStateOf(false) }
+    val markerPositions = remember { mutableStateListOf<Position>() }
+    val markerFeatures by remember {
+        derivedStateOf {
+            FeatureCollection(markerPositions.map { Feature(geometry = Point(it), properties = null) })
+        }
+    }
+    val coroutineScope = rememberCoroutineScope()
+    val buildingBounds = BoundingBox(
+        west = -0.37702,
+        south = 39.46988,
+        east = -0.37595,
+        north = 39.47075,
+    )
     var downloadRequestId by remember { mutableStateOf(0) }
     var isDownloading by remember { mutableStateOf(false) }
     var isDownloaded by remember { mutableStateOf(false) }
@@ -100,11 +128,55 @@ private fun MyMap() {
     )
 
     if (showMap) {
-        MaplibreMap(
-            // Debe coincidir con el estilo descargado para que el SDK resuelva recursos offline.
-            baseStyle = Protomaps.Light.base,
-            cameraState = cameraState,
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            MaplibreMap(
+                // Debe coincidir con el estilo descargado para que el SDK resuelva recursos offline.
+                baseStyle = Protomaps.Light.base,
+                cameraState = cameraState,
+                onMapClick = { position, _ ->
+                    markerPositions.add(position)
+                    ClickResult.Consume
+                },
+            ) {
+                val buildingSource =
+                    rememberGeoJsonSource(GeoJsonData.Uri(Res.getUri("files/data/building.geojson")))
+                val markerSource = rememberGeoJsonSource(data = GeoJsonData.Features(markerFeatures))
+
+                FillLayer(
+                    id = "building-fill",
+                    source = buildingSource,
+                    color = const(Color(0xFF6D4C41)),
+                    opacity = const(0.55f),
+                )
+                LineLayer(
+                    id = "building-outline",
+                    source = buildingSource,
+                    color = const(Color(0xFF3E2723)),
+                    width = const(2.dp),
+                )
+                CircleLayer(
+                    id = "tap-markers",
+                    source = markerSource,
+                    color = const(Color(0xFFE53935)),
+                    radius = const(7.dp),
+                    strokeColor = const(Color.White),
+                    strokeWidth = const(2.dp),
+                )
+            }
+
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        cameraState.animateTo(
+                            boundingBox = buildingBounds,
+                            padding = PaddingValues(48.dp),
+                        )
+                    }
+                },
+                modifier = Modifier.align(Alignment.TopEnd).padding(16.dp),
+            ) {
+                Text("Ir al edificio")
+            }
         }
     } else {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
