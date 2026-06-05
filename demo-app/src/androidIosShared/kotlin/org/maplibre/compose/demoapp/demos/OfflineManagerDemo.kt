@@ -157,7 +157,7 @@ object OfflineManagerDemo : Demo {
     }
   }
 
-  private suspend fun OfflineManager.createNamed(
+  suspend fun OfflineManager.createNamed(
     style: DemoStyle,
     name: String,
     bounds: BoundingBox,

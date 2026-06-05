@@ -34,7 +34,6 @@ import org.maplibre.compose.material3.DisappearingScaleBar
 import org.maplibre.compose.material3.ExpandingAttributionButton
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
-import org.maplibre.compose.style.BaseStyle
 import org.maplibre.compose.style.StyleState
 import org.maplibre.compose.util.ClickResult
 
@@ -90,6 +89,7 @@ fun DemoMap(state: DemoState, padding: PaddingValues = PaddingValues()) {
               gestureOptions = state.gestureOptions,
             ),
         ) {
+
 
           if (PlatformFeature.LayerStyling in Platform.supportedFeatures) {
             state.demos
